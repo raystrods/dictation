@@ -108,6 +108,7 @@
             const stopRecording = () => {
                 if (mediaRecorder && mediaRecorder.state === 'recording') {
                     mediaRecorder.stop();
+                    socket.emit('stop_stream');
                 }
             };
 
