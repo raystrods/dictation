@@ -3,3 +3,4 @@ Flask-SocketIO
 eventlet
 gunicorn
 google-cloud-speech
+grpcio-eventlet
