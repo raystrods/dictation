@@ -1,6 +1,5 @@
 Flask
 Flask-SocketIO
-eventlet
+gevent         # <-- Replaces eventlet
 gunicorn
 google-cloud-speech
-grpcio-eventlet
