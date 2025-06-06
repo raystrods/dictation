@@ -1,28 +1,24 @@
-# --- THIS MUST BE THE VERY FIRST THING IN YOUR APP ---
-import eventlet
-eventlet.monkey_patch()
-# ---------------------------------------------------
+# --- STEP 1: PATCH WITH GEVENT. This must be the first thing. ---
+from gevent import monkey
+monkey.patch_all()
 
-# --- ADD THIS GRPC PATCH RIGHT AFTER ---
-# This is the official way to make the gRPC library compatible with eventlet
-import grpc.experimental.eventlet
-grpc.experimental.eventlet.init_eventlet()
+# --- STEP 2: APPLY THE OFFICIAL GRPC GEVENT PATCH ---
+import grpc.experimental.gevent
+grpc.experimental.gevent.init_gevent()
+# -----------------------------------------------------------------
 
-
-# All other imports go AFTER the monkey_patch call
+# All other imports go AFTER the patches
 import os
 import queue
 from flask import Flask, render_template
 from flask_socketio import SocketIO
 from google.cloud import speech
 
-# --- Flask and SocketIO Setup ---
+# Flask and SocketIO Setup
+# NOTE: We must tell SocketIO we are using gevent as the async_mode.
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-very-secret-key'
-socketio = SocketIO(app)
-
-# --- DO NOT INITIALIZE THE CLIENT HERE IN THE GLOBAL SCOPE ---
-# client = speech.SpeechClient() # <-- This was the line causing the timeout.
+socketio = SocketIO(app, async_mode='gevent')
 
 # This queue will hold audio chunks sent from the browser.
 audio_queue = queue.Queue()
@@ -70,8 +66,6 @@ def transcribe_stream(client_sid):
     This is the core function that handles the gRPC stream to Google Cloud.
     It runs in a background thread for each client that starts a stream.
     """
-    # --- INITIALIZE THE CLIENT *INSIDE* THE BACKGROUND THREAD ---
-    # This is the crucial fix. It avoids the startup conflict.
     try:
         client = speech.SpeechClient()
         print(f"Google Cloud Speech client initialized successfully for SID: {client_sid}")
@@ -79,7 +73,6 @@ def transcribe_stream(client_sid):
         print(f"Error initializing Google Cloud Speech client for SID {client_sid}: {e}")
         socketio.emit('error', {'message': 'Server could not connect to speech service.'}, room=client_sid)
         return
-    # ---------------------------------------------------------
 
     def stream_generator():
         while True:
@@ -124,5 +117,5 @@ def transcribe_stream(client_sid):
 
 # --- Main Execution Block ---
 if __name__ == '__main__':
-    print("Starting Flask-SocketIO server...")
+    print("Starting Flask-SocketIO server with gevent...")
     socketio.run(app, debug=True)
