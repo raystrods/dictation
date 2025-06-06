@@ -3,6 +3,12 @@ import eventlet
 eventlet.monkey_patch()
 # ---------------------------------------------------
 
+# --- ADD THIS GRPC PATCH RIGHT AFTER ---
+# This is the official way to make the gRPC library compatible with eventlet
+import grpc.experimental.eventlet
+grpc.experimental.eventlet.init_eventlet()
+
+
 # All other imports go AFTER the monkey_patch call
 import os
 import queue
