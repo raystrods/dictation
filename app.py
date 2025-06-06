@@ -42,12 +42,29 @@ def handle_disconnect():
     """A client has disconnected from the WebSocket."""
     print('Client disconnected')
 
+@socketio.on('stop_stream')
+def handle_stop_stream():
+    """
+    Called by the client when the 'Stop' button is clicked.
+    This places a None sentinel into the queue to signal the end of the stream.
+    """
+    print('Client requested to stop stream. Sending None to queue.')
+    audio_queue.put(None)
+
 @socketio.on('start_stream')
 def handle_start_stream(options):
     """
     Called by the client to start the transcription stream.
     This launches the main transcription logic in a background thread.
     """
+    # This makes sure that if there's any leftover data from a
+    # previous, abruptly-ended stream, it gets cleared out.
+    while not audio_queue.empty():
+        try:
+            audio_queue.get_nowait()
+        except queue.Empty:
+            continue
+    
     print(f"Starting transcription stream for client: {options['sid']}")
     socketio.start_background_task(target=transcribe_stream, client_sid=options['sid'])
 
