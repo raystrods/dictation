@@ -1,3 +1,7 @@
+# --- THIS MUST BE THE VERY FIRST THING IN YOUR APP ---
+import eventlet
+eventlet.monkey_patch()
+
 import os
 import queue
 
